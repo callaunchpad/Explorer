@@ -38,10 +38,13 @@ class Net:
 		# last_weights = None
 		while True:
 			loss, weights, _ = self.sess.run([self.total_loss, self.weights, self.optimizer], feed_dict={self.x: x})
-			print("loss: %f", loss)
+			# print("loss: %f", loss)
 			# print("weights: ", weights == last_weights)
 			# last_weights = weights
 
-net = Net()
-test = np.array([np.random.rand(net.input_size)])
-net.train(test)
+	def step(self, x):
+		loss, _ = self.sess.run([self.total_loss, self.optimizer], feed_dict={self.x: x})
+
+# net = Net()
+# test = np.array([np.random.rand(net.input_size)])
+# net.train(test)
