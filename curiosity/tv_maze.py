@@ -33,10 +33,10 @@ class Maze:
 		self.pos = (x_pos, y_pos)
 
 		if self.pos == self.tv_pos:
-			print("watching TV")
-			return np.random.normal(0, 10, self.state_shape)
+			# print("watching TV")
+			return (x_pos, y_pos, np.random.normal(0, 10, self.state_shape))
 		else:
-			print("exercising")
-			return np.zeros(self.state_shape)
+			# print("exercising")
+			return (x_pos, y_pos, (np.zeros(self.state_shape) + 5))
 
 # maze = Maze()
