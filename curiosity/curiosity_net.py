@@ -32,7 +32,7 @@ class CuriosityNet:
 		self.x = tf.placeholder(tf.float32, [self.batch_size, self.input_size])
 
 		# Model 1: Fixed network
-		self.num_units1 = 128
+		self.num_units1 = 32
 		with tf.variable_scope("fixed"):
 			self.m1_l1 = tf.layers.dense(self.x, 
 										self.num_units1, 
@@ -51,7 +51,7 @@ class CuriosityNet:
 										self.m1_l1.name)[0] + '/kernel:0')
 
 		# Model 2: Prediction network
-		self.num_units2 = 128
+		self.num_units2 = 32
 		with tf.variable_scope("trainable"):
 			self.m2_l1 = tf.layers.dense(self.x, 
 										self.num_units2, 

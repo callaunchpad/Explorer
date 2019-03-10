@@ -77,7 +77,7 @@ def main():
 		output_size = 2
 		agent = Agent(input_size, output_size)
 		if use_curiosity:
-			curiosity_discount = 100.0
+			curiosity_discount = 500.0
 			curiosity = CuriosityNet(input_size, output_size, 1)
 		tf.global_variables_initializer().run()
 		for i in range(25000):
@@ -95,7 +95,8 @@ def main():
 				state_obs, reward, done, _ = env.step(action)
 				global_reward += reward
 				if use_curiosity:
-					reward += curiosity_discount * curiosity.step(np.array([state_obs]))
+					curiosity_out = curiosity.step(np.array([state_obs]))
+					reward += curiosity_discount * curiosity_out
 				rollout.update(old_state_obs, action, reward)
 				if (i % 25 == 0 and use_display):
 					env.render()
