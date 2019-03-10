@@ -14,13 +14,13 @@ class CuriosityNet:
 		Arsh Zahed
 	"""
 
-	def __init__(self):
+	def __init__(self, input_size, output_size, batch_size):
 		"""
 		Builds and initializes parameters	
 		"""
-		self.input_size = 10
-		self.output_size = 10
-		self.batch_size = 1
+		self.input_size = input_size
+		self.output_size = output_size
+		self.batch_size = batch_size
 		self.sess = tf.Session()
 		self._build_model()
 		self.sess.run(tf.global_variables_initializer())
@@ -84,7 +84,7 @@ class CuriosityNet:
 
 
 if __name__ == "__main__":
-	net = CuriosityNet()
+	net = CuriosityNet(10, 10, 1)
 	test = np.array([np.random.rand(net.input_size)])
 	net.train(test)
 
