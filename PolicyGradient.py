@@ -51,11 +51,6 @@ with tf.Session() as session:
         action = session.run(p_output, feed_dict = {state_pl: state[np.newaxis, :]})[0]
         action = np.random.choice(np.arange(num_outputs), p = action)
 
-        # rand = np.random.random(1)
-        # if action[0]>=action[1]:
-        #     action = 0
-        # elif action[1]>action[0]:
-        #     action = 1
         actions.append(action)
         states.append(state)
         #print(action)
@@ -63,18 +58,14 @@ with tf.Session() as session:
         new_state, reward, done, info = env.step(action)
         rewards.append(reward)
         total_reward+=reward
-        # session.run(training_op, feed_dict = {state_pl: state,
-        #                                       action_pl: [action],
-        #                                       reward_pl: [reward]})
         state = new_state
-        #env.render()
         if done:
             print (episodes, total_reward)
             rewards = discount(rewards, 0.99)
             session.run(training_op, feed_dict = {state_pl:states,
                                                       action_pl:actions,
                                                       reward_pl:rewards})
-            if episodes > 100:
+            if episodes > 200 or total_reward > 800:
                 render = True
             episodes += 1
             total_reward = 0
