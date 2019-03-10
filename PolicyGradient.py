@@ -1,6 +1,9 @@
 import gym
 import tensorflow as tf
 import numpy as np
+from curiosity import curiosity_net
+
+
 num_inputs = 4
 num_outputs = 2
 state_pl = tf.placeholder(tf.float32, shape = [None, num_inputs])
