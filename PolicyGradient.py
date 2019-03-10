@@ -77,21 +77,23 @@ def main():
 		output_size = 2
 		agent = Agent(input_size, output_size)
 		if use_curiosity:
-			curiosity_discount = 1.0
+			curiosity_discount = 100.0
 			curiosity = CuriosityNet(input_size, output_size, 1)
 		tf.global_variables_initializer().run()
-		for i in range(250):
+		for i in range(25000):
 			state_obs = env.reset()
 			done = False
 			rollout = Rollout()
+			global_reward = 0
 			while (not done):
 				old_state_obs = state_obs
-				agent_choice = agent.eval(old_state_obs[np.newaxis, :], sess)
+				agent_choice = agent.eval(old_state_obs[np.newaxis, :], sess)[0]
 				if stochastic_action:
 					action = np.random.choice(np.arange(2), p=agent_choice)
 				else:
-					action = agent_choice
+					action = np.argmax(agent_choice)
 				state_obs, reward, done, _ = env.step(action)
+				global_reward += reward
 				if use_curiosity:
 					reward += curiosity_discount * curiosity.step(np.array([state_obs]))
 				rollout.update(old_state_obs, action, reward)
@@ -100,7 +102,7 @@ def main():
 			rollout.generate_processed_rewards()
 			loss = agent.train(*rollout.get_rollout(), sess)
 			if (i % 5 == 0):
-				print(f"Step {i}: Loss of {loss*100:.2f}%, reward of {sum(rollout.rewards)}")
+				print(f"Step {i}: Loss of {loss*100:.2f}%, reward of {global_reward}")
 	
 
 if __name__ == "__main__":

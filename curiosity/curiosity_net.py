@@ -35,32 +35,42 @@ class CuriosityNet:
 		self.num_units1 = 128
 		with tf.variable_scope("fixed"):
 			self.m1_l1 = tf.layers.dense(self.x, 
-				                         self.num_units1, 
-										 activation=tf.nn.relu, 
-										 trainable=False)
+										self.num_units1, 
+										activation=tf.nn.relu,
+										kernel_initializer=tf.initializers.random_normal,
+										bias_initializer=tf.initializers.random_normal,
+										trainable=False)
 			self.truth = tf.layers.dense(self.m1_l1, 
-				     					 self.output_size, 
-				     					 activation=tf.nn.relu, 
-				     					 trainable=False)
+										self.output_size, 
+										activation=tf.nn.relu, 
+										kernel_initializer=tf.initializers.random_normal,
+										bias_initializer=tf.initializers.random_normal,
+										trainable=False)
 
 		self.weights = tf.get_default_graph().get_tensor_by_name(os.path.split(
-										 self.m1_l1.name)[0] + '/kernel:0')
+										self.m1_l1.name)[0] + '/kernel:0')
 
 		# Model 2: Prediction network
 		self.num_units2 = 128
 		with tf.variable_scope("trainable"):
 			self.m2_l1 = tf.layers.dense(self.x, 
-										 self.num_units2, 
-										 activation=tf.nn.relu)
+										self.num_units2, 
+										activation=tf.nn.relu,
+										kernel_initializer=tf.initializers.random_normal,
+										bias_initializer=tf.initializers.random_normal
+										)
 			self.pred = tf.layers.dense(self.m2_l1, 
 										self.output_size, 
-										activation=tf.nn.relu)
+										activation=tf.nn.relu,
+										kernel_initializer=tf.initializers.random_normal,
+										bias_initializer=tf.initializers.random_normal
+										)
 
 		self.losses = tf.losses.mean_squared_error(labels=self.truth, 
-												   predictions=self.pred)
+												predictions=self.pred)
 		self.total_loss = tf.reduce_mean(self.losses)
 		self.optimizer = tf.train.RMSPropOptimizer(tf.constant(0.005),
-												   0.995).minimize(self.total_loss)
+												0.995).minimize(self.total_loss)
 
 	def train(self, x):
 		"""
@@ -78,7 +88,7 @@ class CuriosityNet:
 			x: Array input to the curiosity module
 		"""
 		loss, _ = self.sess.run([self.total_loss, 
-								 self.optimizer], 
+								self.optimizer], 
 								feed_dict={self.x: x})
 		return loss
 
