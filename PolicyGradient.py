@@ -1,6 +1,17 @@
 import tensorflow as tf
 import numpy as np
 import gym
+import copy
+
+def discount(rewards):
+    result = []
+    sum = 0
+    for i in range(0, len(rewards)):
+        sum = 0.99 * sum + rewards[len(rewards)-1-i]
+        result.insert(0, sum)
+    result -= np.mean(result)
+    result /= np.std(result)
+    return result
 
 class Rollout:
     def __init__(self):
@@ -13,20 +24,21 @@ class Rollout:
         self.actions.append(action)
         self.rewards.append(reward)
     
-    def generate_processed_rewards(self):
-        # Apply discounted accumulation
-        self.processed_rewards = self.rewards[:]
-        future_reward = 0
-        scale_factor = 0.99
-        for i in reversed(range(len(self.processed_rewards))):
-            future_reward = self.processed_rewards[i] + future_reward * scale_factor
-            self.processed_rewards[i] = future_reward
-        # Normalize
-        self.processed_rewards -= np.mean(self.processed_rewards)
-        self.processed_rewards /= np.std(self.processed_rewards)
-    
     def stuff(self):
-        return (self.observations, self.actions, self.processed_rewards)
+        num_samples = int(len(self.observations)/2)
+        observations = copy.deepcopy(self.observations)
+        actions = copy.deepcopy(self.actions)
+        rewards = copy.deepcopy(self.rewards)
+        np.random.seed(100)
+        np.random.shuffle(observations)
+        np.random.seed(100)
+        np.random.shuffle(actions)
+        np.random.seed(100)
+        np.random.shuffle(rewards)
+        observations = observations[:num_samples]
+        actions = actions[:num_samples]
+        rewards = rewards[:num_samples]
+        return (observations, actions, rewards)
 
 class Agent:
     def __init__(self, input_size, output_size):
@@ -60,21 +72,32 @@ def main():
         env._max_episode_steps = 1E3
         agent = Agent(4, 2)
         tf.global_variables_initializer().run()
-        for i in range(250):
+        count = 0
+        rollout = Rollout()
+        for i in range(2000):
             state_obs = env.reset()
             done = False
-            rollout = Rollout()
+            states = []
+            actions = []
+            rewards = []
             while (not done):
                 old_state_obs = state_obs
                 action = np.random.choice(np.arange(2), p=agent.eval(old_state_obs[np.newaxis,:], sess)[0])
                 state_obs, reward, done, _ = env.step(action)
-                rollout.update(old_state_obs, action, reward)
+                states.append(old_state_obs)
+                actions.append(action)
+                rewards.append(reward)
+                if done:
+                    print("Number of times trained: ", count, sum(rewards))
+                    rewards = discount(rewards)
+                    for index in range(len(states)):
+                        rollout.update(states[index], actions[index], rewards[index])
                 if (i % 25 == 0):
                     env.render()
-            rollout.generate_processed_rewards()
-            loss = agent.train(*rollout.stuff(), sess)
-            if (i % 5 == 0):
-                print(f"Step {i}: Loss of {loss*100:.2f}%, reward of {sum(rollout.rewards)}")
+            if (i % 10 == 0):
+                loss = agent.train(*rollout.stuff(), sess)
+                count += 1
+                print ("Training: ", loss)
     
 
 if __name__ == "__main__":
