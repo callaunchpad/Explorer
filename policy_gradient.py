@@ -20,20 +20,16 @@ class Rollout:
     def __iter__(self):
         return iter([self.observations, self.actions, self.rewards])
 
-# TODO:
-# Put the logic from Agent into Actor...
-class Actor:
-    
-    def __init__(self, input_size, output_size, critic):
+class ActorCriticAgent:
+    def __init__(self, input_size, output_size):
         self.input_size = input_size
         self.output_size = output_size
-        self.critic = critic
         
         self.input_states = tf.placeholder(tf.float32, shape=[None, input_size])
         self.input_actions = tf.placeholder(tf.int32, shape=[None,])
         self.input_rewards = tf.placeholder(tf.float32, shape=[None,])
         
-        self.output = arch.feed_forward(
+        self.actor_output = arch.feed_forward(
             self.input_actions,
             {
                 'output_size': self.output_size,
@@ -43,7 +39,7 @@ class Actor:
             }
         )
         
-        self.output_probabilities = tf.nn.softmax(self.output)
+        self.actor_output_probabilities = tf.nn.softmax(self.actor_output)
         self.input_actions_one_hot = tf.one_hot(self.input_actions, self.output_size)
         self.cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.input_actions_one_hot, logits=self.output)
         self.loss = tf.reduce_mean(self.cross_entropy * self.input_rewards)
