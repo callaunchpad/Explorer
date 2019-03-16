@@ -53,7 +53,7 @@ class PolicyGradient:
 
         '''OpenAI environments'''
         env = gym.make('CartPole-v0')  #'Cartpole'
-        env._max_episode_steps = 9000
+        env._max_episode_steps = 1000
         state = env.reset()
         total_reward = 0
         data = []
