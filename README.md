@@ -15,7 +15,7 @@ This should add any required dependencies to your virtual environment.
 
 Do not use `git add .` to add files. This adds files that should potentially be untracked. Instead, use
 ```
-git commit -am "commit message"
+git commit -m "commit message"
 ```
 This adds and commits all modified files that are tracked. If you need to track new files, then use
 ```
