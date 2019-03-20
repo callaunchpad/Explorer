@@ -144,11 +144,11 @@ for i in range(range_data):
     x, y2 = plot_xy(xavier_data[i])
 
     plt.subplot(2,1,1)
-    plt.plot(y1)
+    plt.plot(y1, linewidth=3.0)
     plt.title("Random Normal and Xavier Comparison")
     plt.ylabel("Random Normal")
     plt.subplot(2,1,2)
-    plt.plot(y2)
+    plt.plot(y2, linewidth=3.0)
     plt.ylabel("Xavier")
     plt.xlabel("Episode")
 
