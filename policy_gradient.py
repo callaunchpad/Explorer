@@ -115,7 +115,7 @@ class ActorCritic(Agent):
         )
 
         self.critic_state_V = tf.reshape(self.critic_state_V, [-1])
-        self.critic_advantage = self.reward - (self.critic_state_V - self.critic_next_state_V)
+        self.critic_advantage = self.reward - (self.critic_state_V - self.discount_factor * self.critic_next_state_V)
         
         
         self.critic_loss = tf.reduce_mean(tf.square(self.critic_advantage)) # tf.losses.mean_squared_error(self.cumulative_rewards, self.critic_state_V)
