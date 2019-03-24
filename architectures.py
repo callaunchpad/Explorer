@@ -10,7 +10,6 @@ TODO: Build tests
 import tensorflow as tf
 
 
-
 def feed_forward(_input, hparams, name="ffn"):
     """
     Builds a Feed Forward NN with linear output
