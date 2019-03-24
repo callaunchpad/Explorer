@@ -69,7 +69,7 @@ class ACRollout(Rollouts):
         """
             Returns sampled tuple (state, action, reward, next_state, next_state_value_pred)
         """
-        i = np.random.randint(0, len(self.states))
+        i = np.random.randint(len(self.states))
         return self.states[i], self.actions[i], self.rewards[i], self.next_states[i], self.end[i]
 
 
@@ -101,6 +101,25 @@ class ActorCritic:
             },
             'critic_state_V'
         ))
+        self.params = tf.trainable_variables('critic_state_V')
+
+        self.target_critic_state_V = tf.squeeze(arch.feed_forward(
+            self.state,
+            {
+                'output_size': 1,
+                'hidden_sizes': [self.HIDDEN_SIZE_1, self.HIDDEN_SIZE_2],
+                'activations': [tf.nn.relu, tf.nn.relu],
+                'kernel_initializers': [tf.contrib.layers.xavier_initializer(), tf.contrib.layers.xavier_initializer()],
+            },
+            'target_critic_state_V'
+        ))
+        self.t_params = tf.trainable_variables('target_critic_state_V')
+
+        self.target_init = [self.t_params[i].assign(self.params[i]) for i in range(len(self.t_params))]
+        self.update_target_params = \
+            [self.t_params[i].assign(self.params[i] * self.tau +
+                                     self.t_params[i] * (1. - self.tau)) for i in range(len(self.t_params))]
+
         self.critic_advantage = self.reward + self.discount_factor * self.critic_next_state_V * (
                 1 - self.end) - self.critic_state_V
 
@@ -119,9 +138,10 @@ class ActorCritic:
         )
 
         self.actor_probs = tf.nn.softmax(self.actor_logits)
-        self.log_prob = tf.log(self.actor_probs[0, self.action] + 1e-6)
-        self.actor_loss = -tf.reduce_mean(self.log_prob * tf.stop_gradient(self.critic_loss))
-        self.actor_train_op = tf.train.AdamOptimizer(learning_rate=self.LR).minimize(self.actor_loss)
+        self.action_one_hot = tf.one_hot(self.action, num_actions)
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.action_one_hot, logits=self.actor_logits)
+        self.actor_loss = tf.reduce_mean(cross_entropy * tf.stop_gradient(self.critic_advantage))
+        self.actor_op = tf.train.AdamOptimizer(learning_rate=self.LR).minimize(self.actor_loss)
 
         self.critic_op = tf.train.AdamOptimizer(learning_rate=self.LR).minimize(self.critic_loss)
 
@@ -131,7 +151,7 @@ class ActorCritic:
 
     def update(self, rollout_sample, session):
         state, action, reward, next_state, end = rollout_sample
-        critic_next_state_v = session.run(self.critic_state_V, feed_dict={self.state: [next_state]})
+        critic_next_state_v = session.run(self.target_critic_state_V, feed_dict={self.state: [next_state]})
 
         feed_dict = {
             self.state: [state],
@@ -141,12 +161,18 @@ class ActorCritic:
             self.critic_next_state_V: critic_next_state_v,
             self.end: end
         }
-        loss1, loss2, _, _ = session.run([self.actor_loss, self.critic_loss, self.actor_train_op, self.critic_op], feed_dict=feed_dict)
+        loss1, loss2, _, _ = session.run([self.actor_loss, self.critic_loss, self.actor_op, self.critic_op], feed_dict=feed_dict)
         return loss1, loss2
 
     def value(self, state, session):
         feed_dict = {self.state: [state]}
         return session.run(self.critic_state_V, feed_dict=feed_dict)
+
+    def init_target(self, sess):
+        sess.run(self.target_init)
+
+    def update_target(self, sess):
+        sess.run(self.update_target_params)
 
 
 def main():
@@ -156,14 +182,14 @@ def main():
         agent = ActorCritic(4, 2, 0.99, 0.01)
 
         tf.global_variables_initializer().run()
+        agent.init_target(sess)
         rollout = ACRollout(0.99)
         for i in range(25000):
+            if i % 30 == 0:
+                rollout = ACRollout(0.99)
             total_reward = 0
             next_state_obs = env.reset()
             done = False
-            if i % 30 == 0:
-                rollout = ACRollout(0.99)
-
             while not done:
                 state_obs = next_state_obs
                 action = np.random.choice(np.arange(2), p=agent.action_probs(state_obs[np.newaxis, :], sess)[0])
@@ -175,6 +201,7 @@ def main():
 
             for j in range(1000):
                 loss = agent.update(rollout.sample(), sess)
+                agent.update_target(sess)
             print(f"Step {i}: Loss of {loss[0]}, {loss[1]}, reward of {total_reward}")
 
 
