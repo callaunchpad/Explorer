@@ -177,9 +177,9 @@ class ActorCritic:
 
 def main():
     with tf.Session() as sess:
-        env = gym.make("CartPole-v0")
+        env = gym.make("LunarLander-v2")
         env._max_episode_steps = 10000
-        agent = ActorCritic(4, 2, 0.99, 0.01)
+        agent = ActorCritic(state_dim=8, num_actions=4, discount_factor=0.99, tau=0.01) 
 
         tf.global_variables_initializer().run()
         agent.init_target(sess)
@@ -192,14 +192,14 @@ def main():
             done = False
             while not done:
                 state_obs = next_state_obs
-                action = np.random.choice(np.arange(2), p=agent.action_probs(state_obs[np.newaxis, :], sess)[0])
+                action = np.random.choice(np.arange(4), p=agent.action_probs(state_obs[np.newaxis, :], sess)[0])
                 next_state_obs, reward, done, _ = env.step(action)
                 rollout.push(state_obs, action, reward, next_state_obs, int(done))
                 total_reward += reward
                 if i % 25 == 0:
                     env.render()
 
-            for j in range(1000):
+            for j in range(100):
                 loss = agent.update(rollout.sample(), sess)
                 agent.update_target(sess)
             print(f"Step {i}: Loss of {loss[0]}, {loss[1]}, reward of {total_reward}")
