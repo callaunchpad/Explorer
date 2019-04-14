@@ -126,11 +126,11 @@ random_normal = tf.random_normal_initializer()
 xavier = tf.contrib.layers.xavier_initializer()
 random_num_data = []
 xavier_data = []
-range_data = 10
+range_data = 20
 
 for i in range(range_data):
-    random_num_data.append(pg.policy_gradient(random_normal, 80))
-    xavier_data.append(pg.policy_gradient(xavier, 80))
+    random_num_data.append(pg.policy_gradient(random_normal, 100))
+    xavier_data.append(pg.policy_gradient(xavier, 100))
 
 random_num_np = np.array(random_num_data)
 xavier_np = np.array(xavier_data)
@@ -144,12 +144,12 @@ for i in range(range_data):
     x, y2 = plot_xy(xavier_data[i])
 
     plt.subplot(2,1,1)
-    plt.plot(y1)
-    plt.title("Random Normal and Xavier Comparison")
-    plt.ylabel("Random Normal")
+    plt.plot(y1, linewidth=3.0)
+    plt.title("Random Normal and Xavier Comparison", fontsize=20)
+    plt.ylabel("Random Normal", fontsize=20)
     plt.subplot(2,1,2)
-    plt.plot(y2)
-    plt.ylabel("Xavier")
-    plt.xlabel("Episode")
+    plt.plot(y2, linewidth=3.0)
+    plt.ylabel("Xavier", fontsize=20)
+    plt.xlabel("Episode", fontsize=20)
 
 plt.show()

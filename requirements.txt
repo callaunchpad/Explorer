@@ -1,2 +1,4 @@
-gym==0.11.0
-tensorflow==1.12.0
+gym
+numpy
+tensorflow
+
