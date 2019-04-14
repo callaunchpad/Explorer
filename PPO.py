@@ -3,6 +3,8 @@ import numpy as np
 from sys import argv
 import gym
 
+from curiosity.curiosity_net import CuriosityNet
+
 
 def discount(x, gamma, terminal_array=None):
    if terminal_array is None:
@@ -123,11 +125,17 @@ def main():
 
     train_step, terminal = 0, False
     buffer_s, buffer_a, buffer_r, buffer_v, buffer_terminal = [], [], [], [], []
+    
 
     # np.random.seed(1)
     # tf.set_random_seed(1)
     with tf.Session() as sess:
         ppo = PPO(state_size, action_size, action_bound, 1e-4, 10, 32, 0.1)
+        
+        if use_curiosity:
+            curiosity_discount = 100.0
+            curiosity = CuriosityNet(input_size, output_size, 1)
+
         tf.global_variables_initializer().run()
 
         for episode in range(10000):
