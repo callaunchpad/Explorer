@@ -131,11 +131,11 @@ def main():
     # np.random.seed(1)
     # tf.set_random_seed(1)
     with tf.Session() as sess:
-        ppo = PPO(state_size, curiosity_size, action_bound, 1e-4, 10, 32, 0.1)
+        ppo = PPO(state_size, action_size, action_bound, 1e-4, 10, 32, 0.1)
         
         if use_curiosity:
             curiosity_discount = 100.0
-            curiosity = CuriosityNet(input_size, output_size, 1)
+            curiosity = CuriosityNet(input_size, curiosity_size, 1)
 
         tf.global_variables_initializer().run()
 
