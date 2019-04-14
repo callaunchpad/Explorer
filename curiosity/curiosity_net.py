@@ -70,6 +70,7 @@ class CuriosityNet:
 			loss = self.step(x)
 			print("loss: %f", loss)
 
+
 	def step(self, x):
 		"""
 		Does a single optimization step
@@ -81,6 +82,10 @@ class CuriosityNet:
 								 self.optimizer], 
 								feed_dict={self.x: x})
 		return loss
+
+
+	def get_diff(self, x):
+		return self.sess.run(self.total_loss, feed_dict={self.x: x})
 
 
 if __name__ == "__main__":
