@@ -108,6 +108,7 @@ class PPO:
 def main():
     use_curiosity = False
     use_display = False
+    curiosity_size = 10
     if len(argv) > 1:
         if "use_curiosity" in argv:
             use_curiosity = True
@@ -130,7 +131,7 @@ def main():
     # np.random.seed(1)
     # tf.set_random_seed(1)
     with tf.Session() as sess:
-        ppo = PPO(state_size, action_size, action_bound, 1e-4, 10, 32, 0.1)
+        ppo = PPO(state_size, curiosity_size, action_bound, 1e-4, 10, 32, 0.1)
         
         if use_curiosity:
             curiosity_discount = 100.0
