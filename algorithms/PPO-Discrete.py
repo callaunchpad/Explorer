@@ -1,8 +1,9 @@
 import tensorflow as tf
 import numpy as np
 import gym
-import os
-import cv2
+from utils import discount
+import roboschool
+
 
 class PPO:
     def __init__(self, state_dim, action_dim, lr, epochs, batch_size, epsilon):
@@ -74,13 +75,8 @@ class PPO:
         print("====Finished Training====")
 
     def _build_network(self, state_in, name, reuse=False):
-        w_reg = tf.contrib.layers.l2_regularizer(0.01)
+        w_reg = tf.contrib.layers.l2_regularizer(0.001)
         with tf.variable_scope(name, reuse=reuse):
-            conv1 = tf.layers.conv2d(inputs=state_in, filters=32, kernel_size=8, strides=4, activation=tf.nn.relu)
-            conv2 = tf.layers.conv2d(inputs=conv1, filters=64, kernel_size=4, strides=2, activation=tf.nn.relu)
-            conv3 = tf.layers.conv2d(inputs=conv2, filters=64, kernel_size=3, strides=1, activation=tf.nn.relu)
-            state_in = tf.layers.flatten(conv3)
-
             with tf.variable_scope("policy"):
                 layer_1 = tf.layers.dense(state_in, 400, tf.nn.relu, kernel_regularizer=w_reg)
                 layer_2 = tf.layers.dense(layer_1, 400, tf.nn.relu, kernel_regularizer=w_reg)
@@ -105,36 +101,13 @@ class PPO:
         return np.squeeze(value)
 
 
-def preprocess(input_observation, prev_processed_observation):
-    obs = cv2.cvtColor(input_observation, cv2.COLOR_RGB2GRAY)
-    obs[obs != 0] = 1
-    obs = cv2.resize(obs, (84, 84), interpolation=cv2.INTER_AREA)
-
-    # subtract the previous frame from the current one so we are only processing on changes in the game
-    if prev_processed_observation is not None:
-        return np.maximum(obs[:, :, None], 0.6 * prev_processed_observation)
-    return obs[:, :, None]
-
-
-def discount(x, gamma, terminal_array=None):
-    if terminal_array is None:
-        return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
-    else:
-        y, adv = 0, []
-        terminals_reversed = terminal_array[1:][::-1]
-        for step, dt in enumerate(reversed(x)):
-            y = dt + gamma * y * (1 - terminals_reversed[step])
-            adv.append(y)
-        return np.array(adv)[::-1]
-        
-        
 def main():
-    env = gym.make("")
+    env = gym.make("CartPole-v1")
     # env.seed(0)
     gamma_const = 0.99
     lambda_const = 0.95
 
-    state_size = (84, 84, 1) #env.observation_space.shape
+    state_size = env.observation_space.shape
     action_size = env.action_space.n
 
     train_step, terminal = 0, False
@@ -142,21 +115,17 @@ def main():
 
     # np.random.seed(1)
     # tf.set_random_seed(1)
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    config = tf.ConfigProto(log_device_placement=False, device_count={'GPU': True})
-    config.gpu_options.per_process_gpu_memory_fraction = 0.1
-    with tf.Session(config=config) as sess:
+    with tf.Session() as sess:
         ppo = PPO(state_size, action_size, 0.0001, 10, 32, 0.1)
         tf.global_variables_initializer().run()
 
         for episode in range(100000):
             obs = env.reset()
-            prep_obs = preprocess(obs, None)
             total_reward, num_steps = 0, 0
 
             while True:
-                a = ppo.get_action(sess, prep_obs)
-                v = ppo.get_value(sess, prep_obs)
+                a = ppo.get_action(sess, obs)
+                v = ppo.get_value(sess, obs)
 
                 if train_step == 2000:
                     rewards = np.array(buffer_r)
@@ -178,20 +147,17 @@ def main():
                     buffer_s, buffer_a, buffer_r, buffer_v, buffer_terminal = [], [], [], [], []
                     train_step = 0
 
-                buffer_s.append(prep_obs)
+                buffer_s.append(obs)
                 buffer_a.append(a)
                 buffer_v.append(v)
                 buffer_terminal.append(terminal)
 
-                new_obs, r, terminal, _ = env.step(a)
+                obs, r, terminal, _ = env.step(a)
                 buffer_r.append(r)
 
                 total_reward += r
                 num_steps += 1
                 train_step += 1
-                prep_obs = preprocess(new_obs, prep_obs)
-
-                obs = new_obs
 
                 if terminal:
                     print('Episode: %i' % episode, "| Reward: %.2f" % total_reward, '| Steps: %i' % num_steps)
