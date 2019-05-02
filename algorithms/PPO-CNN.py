@@ -3,6 +3,7 @@ import numpy as np
 import gym
 import os
 import cv2
+import envs
 
 class PPO:
     def __init__(self, state_dim, action_dim, lr, epochs, batch_size, epsilon):
@@ -106,14 +107,15 @@ class PPO:
 
 
 def preprocess(input_observation, prev_processed_observation):
-    obs = cv2.cvtColor(input_observation, cv2.COLOR_RGB2GRAY)
-    obs[obs != 0] = 1
-    obs = cv2.resize(obs, (84, 84), interpolation=cv2.INTER_AREA)
+    return input_observation
+    # obs = cv2.cvtColor(input_observation, cv2.COLOR_RGB2GRAY)
+    # obs[obs != 0] = 1
+    # obs = cv2.resize(obs, (84, 84), interpolation=cv2.INTER_AREA)
 
-    # subtract the previous frame from the current one so we are only processing on changes in the game
-    if prev_processed_observation is not None:
-        return np.maximum(obs[:, :, None], 0.6 * prev_processed_observation)
-    return obs[:, :, None]
+    # # subtract the previous frame from the current one so we are only processing on changes in the game
+    # if prev_processed_observation is not None:
+    #     return np.maximum(obs[:, :, None], 0.6 * prev_processed_observation)
+    # return obs[:, :, None]
 
 
 def discount(x, gamma, terminal_array=None):
@@ -129,12 +131,12 @@ def discount(x, gamma, terminal_array=None):
         
         
 def main():
-    env = gym.make("")
+    env = envs.GradEnv()
     # env.seed(0)
     gamma_const = 0.99
     lambda_const = 0.95
 
-    state_size = (84, 84, 1) #env.observation_space.shape
+    state_size = env.observation_space.shape
     action_size = env.action_space.n
 
     train_step, terminal = 0, False
@@ -149,12 +151,17 @@ def main():
         ppo = PPO(state_size, action_size, 0.0001, 10, 32, 0.1)
         tf.global_variables_initializer().run()
 
-        for episode in range(100000):
+        for episode in range(int(1E12)):
             obs = env.reset()
             prep_obs = preprocess(obs, None)
             total_reward, num_steps = 0, 0
+            
+            if episode % 1000 == 0:
+                tf.train.Saver().save(sess, './ye')
 
             while True:
+                if episode % 25 == 0:
+                    env.render()
                 a = ppo.get_action(sess, prep_obs)
                 v = ppo.get_value(sess, prep_obs)
 
