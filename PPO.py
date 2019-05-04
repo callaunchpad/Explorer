@@ -108,7 +108,6 @@ class PPO:
 def main():
     use_curiosity = False
     use_display = False
-    curiosity_size = 10
     if len(argv) > 1:
         if "use_curiosity" in argv:
             use_curiosity = True
@@ -126,7 +125,6 @@ def main():
 
     train_step, terminal = 0, False
     buffer_s, buffer_a, buffer_r, buffer_v, buffer_terminal = [], [], [], [], []
-    
 
     # np.random.seed(1)
     # tf.set_random_seed(1)
@@ -134,8 +132,9 @@ def main():
         ppo = PPO(state_size, action_size, action_bound, 1e-4, 10, 32, 0.1)
         
         if use_curiosity:
-            curiosity_discount = 100.0
-            curiosity = CuriosityNet(input_size, curiosity_size, 1)
+            curiosity_discount = .01
+            curiosity_size = 10
+            curiosity = CuriosityNet(state_size[0], curiosity_size, 1)
 
         tf.global_variables_initializer().run()
 
@@ -146,6 +145,8 @@ def main():
             while True:
                 a = ppo.get_action(sess, obs)
                 v = ppo.get_value(sess, obs)
+                if use_curiosity:
+                    c = curiosity.step(obs.reshape(-1, state_size[0]))
 
                 if train_step == 2000:
                     rewards = np.array(buffer_r)
@@ -166,6 +167,8 @@ def main():
                     ppo.train(sess, bs, ba, br, badv)
                     buffer_s, buffer_a, buffer_r, buffer_v, buffer_terminal = [], [], [], [], []
                     train_step = 0
+                    if use_curiosity:
+                        print(c)  
 
                 buffer_s.append(obs)
                 buffer_a.append(a)
@@ -174,12 +177,15 @@ def main():
 
                 a = np.clip(a, env.action_space.low, env.action_space.high)
                 obs, r, terminal, _ = env.step(a)
+                if use_curiosity:
+                    r = r + curiosity_discount * c
                 buffer_r.append(r)
 
                 total_reward += r
                 num_steps += 1
                 train_step += 1
-
+                if episode % 50 == 0:
+                    env.render()
                 if terminal:
                     print('Episode: %i' % episode, "| Reward: %.2f" % total_reward, '| Steps: %i' % num_steps)
                     break
