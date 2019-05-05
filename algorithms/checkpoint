@@ -1,0 +1,3 @@
+model_checkpoint_path: "model_50_-7.9141006477671905.ckpt"
+all_model_checkpoint_paths: "model_0_-3.8253606477825084.ckpt"
+all_model_checkpoint_paths: "model_50_-7.9141006477671905.ckpt"

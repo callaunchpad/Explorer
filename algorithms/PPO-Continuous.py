@@ -1,9 +1,20 @@
 import tensorflow as tf
 import numpy as np
 import gym
-from utils import discount
 import roboschool
+import scipy.signal
 
+
+def discount(x, gamma, terminal_array=None):
+    if terminal_array is None:
+        return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
+    else:
+        y, adv = 0, []
+        terminals_reversed = terminal_array[1:][::-1]
+        for step, dt in enumerate(reversed(x)):
+            y = dt + gamma * y * (1 - terminals_reversed[step])
+            adv.append(y)
+        return np.array(adv)[::-1]
 
 class PPO:
     def __init__(self, state_dim, action_dim, action_bound, lr, epochs, batch_size, epsilon):
@@ -104,7 +115,7 @@ class PPO:
 
 
 def main():
-    env = gym.make("Pendulum-v0")
+    env = gym.make("RoboschoolHalfCheetah-v1")
     # env.seed(0)
     gamma_const = 0.99
     lambda_const = 0.95
@@ -121,6 +132,9 @@ def main():
     with tf.Session() as sess:
         ppo = PPO(state_size, action_size, action_bound, 0.0001, 10, 32, 0.1)
         tf.global_variables_initializer().run()
+
+        # Add ops to save and restore all the variables.
+        saver = tf.train.Saver()
 
         for episode in range(100000):
             obs = env.reset()
@@ -166,6 +180,9 @@ def main():
                 if terminal:
                     print('Episode: %i' % episode, "| Reward: %.2f" % total_reward, '| Steps: %i' % num_steps)
                     break
+
+            if episode % 50 == 0:
+                save_path = saver.save(sess, "./models/model_" + str(episode) + "_" + str(total_reward) + ".ckpt")
 
 
 if __name__ == '__main__':
