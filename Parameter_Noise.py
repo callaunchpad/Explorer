@@ -6,13 +6,14 @@ import scipy
 
 
 class ParameterPPO:
-    def __init__(self, state_dim, action_dim, action_bound, lr, gamma, clip_val):
+    def __init__(self, state_dim, action_dim, action_bound, lr, gamma, clip_val, noise_std):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.lr = lr
         self.gamma = gamma
         self.clip_val = clip_val
         self.action_bound = action_bound
+        self.noise_std = noise_std
 
         self.state_pl = tf.placeholder(tf.float32, [None, ] + list(state_dim), 'states')
         self.action_pl = tf.placeholder(tf.float32, shape=[None, action_dim], name="actions")
@@ -30,11 +31,11 @@ class ParameterPPO:
         self.iterator = self.dataset.make_initializable_iterator()
         batch = self.iterator.get_next()
 
-        pi_probs, self.v_pred, pi_params = self._build_network('pi', batch["state"], False)
+        pi_probs, self.v_pred, self.pi_params = self._build_network('pi', batch["state"], False)
         oldpi_probs, _, oldpi_params = self._build_network('old_pi', batch["state"], False)
         pi_eval, self.pi_value, _ = self._build_network('pi', self.state_pl, True)
         self.act_random = tf.squeeze(pi_eval.sample(1), axis=1)
-        self.update_oldpi_op = [oldp.assign(p) for p, oldp in zip(pi_params, oldpi_params)]
+        self.update_oldpi_op = [oldp.assign(p) for p, oldp in zip(self.pi_params, oldpi_params)]
         # act_one_hot = tf.one_hot(self.action_pl, self.action_dim)
         # act_prob = tf.reduce_sum(act_one_hot * pi_probs, axis=1)
         # oldact_one_hot = tf.one_hot(self.action_pl, self.action_dim)
@@ -54,7 +55,7 @@ class ParameterPPO:
         with tf.variable_scope('loss'):
             self.total_loss = -self.actor_loss + self.critic_loss * 0.5  # - 0.01 * self.entropy_loss
             optimizer = tf.train.AdamOptimizer(self.lr)
-            self.train_op = optimizer.minimize(self.total_loss, var_list=pi_params)
+            self.train_op = optimizer.minimize(self.total_loss, var_list=self.pi_params)
 
     def _build_network(self, scope, state_in, reuse):
         with tf.variable_scope(scope, reuse=reuse):
@@ -79,6 +80,7 @@ class ParameterPPO:
     def get_value(self, sess, state):
         return sess.run(self.pi_value, feed_dict={self.state_pl: state})
 
+
     def update_params(self, sess):
 
         # Noisy parameters here
@@ -89,9 +91,9 @@ class ParameterPPO:
             param.assign(noisy_param)
         sess.run(self.update_oldpi_op)
         i = 0
-        for param in self.pi_params:
-            param.assign(old_params[i])
-            i += 1
+        # for param in self.pi_params:
+        #     param.assign(old_params[i])
+        #     i += 1
 
     def train(self, sess, states, actions, returns, advantages):
         feed_dict = {self.state_pl: states, self.return_pl: returns, self.advantage_pl: advantages,
@@ -138,7 +140,7 @@ def main():
         state_size = env.observation_space.shape
         action_size = env.action_space.shape[0]
         action_bound = (env.action_space.high - env.action_space.low) / 2
-        agent = ParameterPPO(state_size, action_size, action_bound, 1e-4, gamma, 0.2)
+        agent = ParameterPPO(state_size, action_size, action_bound, 1e-4, gamma, 0.2, 1)
         tf.global_variables_initializer().run()
         for iteration in range(10000):
             total_reward = 0
@@ -164,6 +166,7 @@ def main():
                     advantages = np.vstack(advantages)
                     states = np.array(states)
                     states = np.reshape(states, (train_step,) + agent.state_dim)
+                    agent.update_params(sess)
                     agent.train(sess, states, actions, returns, advantages)
 
                     states = []
