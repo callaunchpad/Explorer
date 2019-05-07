@@ -12,9 +12,9 @@ This should add any required dependencies to your virtual environment.
 
 ## Results
 #### Half Cheetah Environment
-<img src="images/cheetah.gif" width = "400">
+<img src="images/cheetah.gif" width = "400"></img>
 #### Ant Environment
-<img src="images/ant.gif" width = "400">
+<img src="images/ant.gif" width = "400"></img>
 
 ## Contributing Code and Workflow
 **Please make sure all commits have meaningful comments!**
