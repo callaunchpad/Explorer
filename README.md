@@ -12,7 +12,7 @@ This should add any required dependencies to your virtual environment.
 
 ## Results
 #### Half Cheetah Environment
-![](images/cheetah.gif){:height="50%" width="50%"}
+<img src="images/cheetah.gif" width = "200">
 #### Ant Environment
 ![](images/ant.gif)
 
